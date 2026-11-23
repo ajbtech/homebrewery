@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import _ from 'lodash';
 import Nav from './nav.jsx';
 import { splitTextStyleAndMetadata } from '@shared/helpers.js';
@@ -8,8 +8,11 @@ const STYLEKEY = 'HB_newPage_style';
 const METAKEY = 'HB_newPage_meta';
 
 const NewBrew = ()=>{
+	const fileInputRef = useRef(null);
+
 	const handleFileChange = (e)=>{
 		const file = e.target.files[0];
+		e.target.value = '';	// So picking the same file again still fires change
 		if(!file) return;
 
 		if(!confirmLocalStorageChange()) return;
@@ -65,38 +68,42 @@ const NewBrew = ()=>{
 
 
 	return (
-		<Nav.dropdown>
-			<Nav.item
-				className='new'
-				color='purple'
-				icon='fa-solid fa-plus-square'>
-					new
-			</Nav.item>
-			<Nav.item
-				className='new'
-				href='/new'
-				newTab={true}
-				color='purple'
-				icon='fa-solid fa-file'>
-					resume draft
-			</Nav.item>
-			<Nav.item
-				className='fromBlank'
-				newTab={true}
-				color='yellow'
-				icon='fa-solid fa-file-circle-plus'
-				onClick={()=>{ clearLocalStorage(); }}>
-					from blank
-			</Nav.item>
-			<Nav.item
-				className='fromFile'
-				color='green'
-				icon='fa-solid fa-upload'
-				onClick={()=>{ document.getElementById('uploadTxt').click(); }}>
-				<input id='uploadTxt' className='newFromLocal' type='file' onChange={handleFileChange} style={{ display: 'none' }} />
-					from file
-			</Nav.item>
-		</Nav.dropdown>
+		<>
+			<Nav.dropdown>
+				<Nav.item
+					className='new'
+					color='purple'
+					icon='fa-solid fa-plus-square'>
+						new
+				</Nav.item>
+				<Nav.item
+					className='new'
+					href='/new'
+					newTab={true}
+					color='purple'
+					icon='fa-solid fa-file'>
+						resume draft
+				</Nav.item>
+				<Nav.item
+					className='fromBlank'
+					newTab={true}
+					color='yellow'
+					icon='fa-solid fa-file-circle-plus'
+					onClick={()=>{ clearLocalStorage(); }}>
+						from blank
+				</Nav.item>
+				<Nav.item
+					className='fromFile'
+					color='green'
+					icon='fa-solid fa-upload'
+					onClick={()=>{ fileInputRef.current?.click(); }}>
+						from file
+				</Nav.item>
+			</Nav.dropdown>
+			{/* Outside the dropdown: it unmounts when the mouse leaves, and Firefox can fire that while the
+			    file picker is open, so the input was removed before its change event arrived (#4656). */}
+			<input ref={fileInputRef} className='newFromLocal' type='file' onChange={handleFileChange} style={{ display: 'none' }} />
+		</>
 	);
 };
 
