@@ -1,4 +1,5 @@
 import express    from 'express';
+import _          from 'lodash';
 import asyncHandler from 'express-async-handler';
 import { model as HomebrewModel }     from './homebrew.model.js';
 
@@ -14,9 +15,24 @@ const titleConditions = (title)=>{
 	};
 };
 
+const MIN_PARTIAL_AUTHOR_LENGTH = 3;
+
 const authorConditions = (author)=>{
-	if(!author) return {};
-	return { authors: author };
+	if(typeof author !== 'string' || !author) return {};
+	const escaped = _.escapeRegExp(author);
+	return {
+		authors : {
+			$elemMatch : {
+				// Case-insensitive. Short terms must match the whole name, so 1-2 letter usernames
+				// can still be found without matching nearly every author.
+				$regex   : author.length < MIN_PARTIAL_AUTHOR_LENGTH ? `^${escaped}$` : escaped,
+				$options : 'i',
+				// Some authors are stored as email addresses and shown as 'hidden'. Never match those,
+				// or partial searches could be used to work the hidden address out.
+				$not     : /@/
+			}
+		}
+	};
 };
 
 const rendererConditions = (legacy, v3)=>{
@@ -94,6 +110,7 @@ const findTotal = async (req, res)=>{
 	};
 
 	await HomebrewModel.countDocuments(combinedQuery)
+		.maxTimeMS(5000)
 		.then((totalBrews)=>{
 			console.log(`when returning, the total of brews is ${totalBrews} for the query ${JSON.stringify(combinedQuery)}`);
 			res.json({ totalBrews });
